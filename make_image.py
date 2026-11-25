@@ -22,6 +22,22 @@ spec.json shapes (pick one "type"):
   {"type": "statement", "kicker": "UNPOPULAR OPINION",
    "text": "COD is not the problem. Unconfirmed COD is.",
    "footer": "Merchly"}
+  {"type": "bars", "title": "COD vs prepaid return rate",
+   "bars": [{"label": "COD", "value": 37.5}, {"label": "Prepaid", "value": 5.3}],
+   "unit": "%", "source": "Source: ClickPost India RTO data, 2026",
+   "footer": "CODless by Merchly"}
+   (2-6 bars; only real sourced numbers; "source" is required)
+
+  {"type": "bignumber", "number": "7x", "text": "more COD parcels come back than prepaid ones",
+   "source": "Source: ...", "footer": "Merchly"}
+
+  {"type": "mythfact", "title": "COD myths we hear a lot",
+   "pairs": [{"myth": "COD buyers are just careless", "fact": "Most refusals start with no confirmation call"}],
+   "footer": "Merchly"}   (1-3 pairs)
+
+  {"type": "grid", "title": "4 ways to cut refused parcels",
+   "cells": [{"head": "Confirm", "body": "Call before you dispatch"}, ...],
+   "footer": "Merchly"}   (exactly 4 cells)
 """
 import json
 import sys
@@ -212,6 +228,116 @@ def render_statement(d, spec):
         y += 86
 
 
+GREEN = (22, 163, 74)
+RED = (220, 38, 38)
+
+
+def source_line(d, text):
+    if not text:
+        return
+    f = font("regular", 22)
+    d.text((90 * SCALE, (S - 95) * SCALE), text, font=f, fill=SOFT)
+
+
+def render_bars(d, spec, top):
+    bars = spec["bars"][:6]
+    unit = spec.get("unit", "")
+    vmax = max(b["value"] for b in bars) or 1
+    y0 = top / SCALE
+    fl = font("bold", 30)
+    fv = font("bold", 34)
+    n = len(bars)
+    inner_top = y0 + 40
+    row = min(130, ((S - 190) - inner_top) / n)
+    card(d, [90, y0, S - 90, inner_top + row * n + 30])
+    bh = min(64, row * 0.55)
+    label_w = 210
+    x_start = 130 + label_w
+    x_end = S - 130 - 120
+    for i, b in enumerate(bars):
+        cy = inner_top + row * i + row / 2
+        lines = wrap(d, b["label"], fl, label_w * SCALE)[:2]
+        ly = cy - 20 * len(lines)
+        for ln in lines:
+            d.text((130 * SCALE, ly * SCALE), ln, font=fl, fill=INK)
+            ly += 40
+        w = max(8, (x_end - x_start) * b["value"] / vmax)
+        col = PURPLE_B if i % 2 == 0 else (99, 102, 241)
+        if b.get("highlight"):
+            col = YELLOW
+        d.rounded_rectangle([x_start * SCALE, (cy - bh / 2) * SCALE, (x_start + w) * SCALE, (cy + bh / 2) * SCALE], radius=12 * SCALE, fill=col)
+        val = (str(b["value"]).rstrip("0").rstrip(".") if isinstance(b["value"], float) else str(b["value"])) + unit
+        d.text(((x_start + w + 16) * SCALE, (cy - 22) * SCALE), val, font=fv, fill=INK)
+
+
+def render_bignumber(d, spec):
+    fn = font("bold", 220)
+    ft = font("bold", 50)
+    num = spec["number"]
+    nw = d.textlength(num, font=fn)
+    lines = wrap(d, spec["text"], ft, W - 2 * 110 * SCALE)[:4]
+    total = 250 + 64 * len(lines)
+    y = (S - total) / 2 - 40
+    d.text(((W - nw) / 2, y * SCALE), num, font=fn, fill=YELLOW)
+    y += 270
+    for ln in lines:
+        lw = d.textlength(ln, font=ft)
+        d.text(((W - lw) / 2, y * SCALE), ln, font=ft, fill=WHITE)
+        y += 64
+
+
+def render_mythfact(d, spec, top):
+    pairs = spec["pairs"][:3]
+    fk = font("bold", 24)
+    ft = font("medium", 30)
+    y = top / SCALE
+    avail = (S - 150) - y
+    gap = 22
+    h = (avail - gap * (len(pairs) - 1)) / len(pairs)
+    for p in pairs:
+        card(d, [90, y, S - 90, y + h])
+        half = h / 2
+        for k, (tag, txt, col) in enumerate([("MYTH", p["myth"], RED), ("FACT", p["fact"], GREEN)]):
+            yy = y + half * k
+            tw = d.textlength(tag, font=fk)
+            d.rounded_rectangle([120 * SCALE, (yy + half / 2 - 20) * SCALE, 120 * SCALE + tw + 32 * SCALE, (yy + half / 2 + 20) * SCALE], radius=20 * SCALE, fill=col)
+            d.text((136 * SCALE, (yy + half / 2 - 15) * SCALE), tag, font=fk, fill=WHITE)
+            lines = wrap(d, txt, ft, (S - 90 - 30 - 250) * SCALE)[:2]
+            ly = yy + half / 2 - 20 * len(lines)
+            for ln in lines:
+                d.text((250 * SCALE, ly * SCALE), ln, font=ft, fill=INK if k else MUTED)
+                ly += 40
+        d.line([(120 * SCALE, (y + half) * SCALE), ((S - 120) * SCALE, (y + half) * SCALE)], fill=SOFT, width=2 * SCALE)
+        y += h + gap
+
+
+def render_grid(d, spec, top):
+    cells = spec["cells"][:4]
+    fh = font("bold", 34)
+    fb = font("medium", 27)
+    y0 = top / SCALE
+    gap = 24
+    cw = (S - 180 - gap) / 2
+    ch = ((S - 150) - y0 - gap) / 2
+    for i, c in enumerate(cells):
+        x = 90 + (i % 2) * (cw + gap)
+        y = y0 + (i // 2) * (ch + gap)
+        card(d, [x, y, x + cw, y + ch])
+        d.ellipse([(x + 28) * SCALE, (y + 28) * SCALE, (x + 76) * SCALE, (y + 76) * SCALE], fill=PURPLE_B)
+        num = str(i + 1)
+        f2 = font("bold", 28)
+        nw = d.textlength(num, font=f2)
+        d.text(((x + 52) * SCALE - nw / 2, (y + 32) * SCALE), num, font=f2, fill=WHITE)
+        ty = y + 96
+        for ln in wrap(d, c["head"], fh, (cw - 56) * SCALE)[:2]:
+            d.text(((x + 28) * SCALE, ty * SCALE), ln, font=fh, fill=INK)
+            ty += 44
+        ty += 6
+        for ln in wrap(d, c["body"], fb, (cw - 56) * SCALE)[:4]:
+            d.text(((x + 28) * SCALE, ty * SCALE), ln, font=fb, fill=MUTED)
+            ty += 38
+
+
 def main(spec_path, out_path):
     spec = json.load(open(spec_path, encoding="utf-8"))
     img = background()
@@ -219,9 +345,15 @@ def main(spec_path, out_path):
     t = spec["type"]
     if t == "statement":
         render_statement(d, spec)
+    elif t == "bignumber":
+        render_bignumber(d, spec)
     else:
         top = header(d, spec["title"])
-        {"workflow": render_workflow, "checklist": render_checklist, "compare": render_compare}[t](d, spec, top)
+        {"workflow": render_workflow, "checklist": render_checklist, "compare": render_compare,
+         "bars": render_bars, "mythfact": render_mythfact, "grid": render_grid}[t](d, spec, top)
+    if t in ("bars", "bignumber") and not spec.get("source"):
+        raise SystemExit("bars/bignumber need a 'source' (real, cited data only)")
+    source_line(d, spec.get("source", ""))
     footer(d, spec.get("footer", "Merchly"))
     img.resize((S, S), Image.LANCZOS).convert("RGB").save(out_path, optimize=True)
 
