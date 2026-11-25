@@ -38,6 +38,16 @@ spec.json shapes (pick one "type"):
   {"type": "grid", "title": "4 ways to cut refused parcels",
    "cells": [{"head": "Confirm", "body": "Call before you dispatch"}, ...],
    "footer": "Merchly"}   (exactly 4 cells)
+
+  CAROUSEL (LinkedIn PDF document post, 1080x1350 slides). Output must end in .pdf;
+  a cover PNG (<out>.cover.png) is also written for the Buffer thumbnail.
+  {"type": "carousel", "title": "6 steps to cut refused COD parcels",
+   "kicker": "COD PLAYBOOK",
+   "slides": [{"head": "Call before you pack", "body": "A 60-second call catches most fake orders.",
+               "points": ["Ask them to confirm the address", "Note what they said"]}],
+   "end_title": "Which step does your team skip?", "end_body": "Tell us in the comments.",
+   "footer": "Merchly"}
+  (3-8 content slides; "body" and "points" are optional but use at least one)
 """
 import json
 import sys
@@ -338,8 +348,134 @@ def render_grid(d, spec, top):
             ty += 38
 
 
+CW, CH = 1080, 1350
+
+
+def _bg(w, h):
+    img = Image.new("RGBA", (w * SCALE, h * SCALE))
+    d = ImageDraw.Draw(img)
+    W2, H2 = w * SCALE, h * SCALE
+    for i in range(W2 + H2):
+        t = i / (W2 + H2)
+        c = tuple(int(PURPLE_A[k] + (PURPLE_B[k] - PURPLE_A[k]) * t) for k in range(3)) + (255,)
+        d.line([(i, 0), (0, i)], fill=c, width=3)
+    ov = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    o = ImageDraw.Draw(ov)
+    o.ellipse([-W2 * 0.35, -W2 * 0.35, W2 * 0.45, W2 * 0.45], fill=(255, 255, 255, 16))
+    o.ellipse([W2 * 0.55, H2 * 0.7, W2 * 1.4, H2 * 1.4], fill=(255, 255, 255, 12))
+    img.alpha_composite(ov)
+    return img
+
+
+def _slide_footer(d, footer_text, idx, total):
+    f = font("medium", 28)
+    y = (CH - 90) * SCALE
+    d.ellipse([90 * SCALE, y + 10 * SCALE, 110 * SCALE, y + 30 * SCALE], fill=YELLOW)
+    d.text((124 * SCALE, y), footer_text, font=f, fill=SOFT)
+    pg = f"{idx}/{total}"
+    pw = d.textlength(pg, font=f)
+    d.text(((CW - 90) * SCALE - pw, y), pg, font=f, fill=SOFT)
+
+
+def _lines(d, text, f, maxw, x, y, fill, lh, maxl=6):
+    for ln in wrap(d, text, f, maxw * SCALE)[:maxl]:
+        d.text((x * SCALE, y * SCALE), ln, font=f, fill=fill)
+        y += lh
+    return y
+
+
+def render_carousel(spec, out_path):
+    slides = spec["slides"][:8]
+    footer_text = spec.get("footer", "Merchly")
+    total = len(slides) + 2
+    pages = []
+    # cover
+    img = _bg(CW, CH)
+    d = ImageDraw.Draw(img)
+    y = 300
+    if spec.get("kicker"):
+        fk = font("bold", 30)
+        kw = d.textlength(spec["kicker"], font=fk)
+        d.rounded_rectangle([90 * SCALE, y * SCALE, 90 * SCALE + kw + 48 * SCALE, (y + 54) * SCALE], radius=27 * SCALE, fill=YELLOW)
+        d.text((114 * SCALE, (y + 7) * SCALE), spec["kicker"], font=fk, fill=DEEP)
+        y += 100
+    y = _lines(d, spec["title"], font("bold", 84), CW - 180, 90, y, WHITE, 100, 5)
+    y += 40
+    fs_ = font("bold", 40)
+    d.text((90 * SCALE, y * SCALE), "Swipe", font=fs_, fill=YELLOW)
+    ax = 90 * SCALE + d.textlength("Swipe", font=fs_) + 24 * SCALE
+    ay = (y + 28) * SCALE
+    d.line([(ax, ay), (ax + 60 * SCALE, ay)], fill=YELLOW, width=7 * SCALE)
+    d.polygon([(ax + 60 * SCALE, ay - 16 * SCALE), (ax + 84 * SCALE, ay), (ax + 60 * SCALE, ay + 16 * SCALE)], fill=YELLOW)
+    _slide_footer(d, footer_text, 1, total)
+    pages.append(img)
+    # content
+    fh = font("bold", 66)
+    fb = font("medium", 46)
+    fp = font("medium", 44)
+    fn = font("bold", 50)
+    for i, sl in enumerate(slides):
+        img = _bg(CW, CH)
+        d = ImageDraw.Draw(img)
+        inner = []
+        if sl.get("body"):
+            inner.append(("body", sl["body"]))
+        for pt in sl.get("points", [])[:5]:
+            inner.append(("pt", pt))
+        head_lines = wrap(d, sl["head"], fh, (CW - 180) * SCALE)[:3]
+        card_h = 0
+        if inner:
+            card_h = 60
+            for kind, txt in inner:
+                if kind == "body":
+                    n = len(wrap(d, txt, fb, (CW - 180 - 120) * SCALE)[:4])
+                else:
+                    n = len(wrap(d, txt, fp, (CW - 180 - 160) * SCALE)[:3])
+                card_h += n * 60 + 30
+        block = 120 + 40 + len(head_lines) * 80 + (40 + card_h if inner else 0)
+        y0 = max(120, (CH - 120 - block) / 2)
+        d.ellipse([90 * SCALE, y0 * SCALE, 200 * SCALE, (y0 + 110) * SCALE], fill=YELLOW)
+        num = str(i + 1)
+        nw = d.textlength(num, font=fn)
+        d.text((145 * SCALE - nw / 2, (y0 + 24) * SCALE), num, font=fn, fill=DEEP)
+        y = y0 + 160
+        for ln in head_lines:
+            d.text((90 * SCALE, y * SCALE), ln, font=fh, fill=WHITE)
+            y += 80
+        if inner:
+            top = y + 40
+            card(d, [90, top, CW - 90, top + card_h], r=36)
+            y = top + 50
+            for kind, txt in inner:
+                if kind == "body":
+                    y = _lines(d, txt, fb, CW - 180 - 120, 150, y, INK, 60, 4) + 30
+                else:
+                    d.ellipse([150 * SCALE, (y + 20) * SCALE, 172 * SCALE, (y + 42) * SCALE], fill=PURPLE_B)
+                    y = _lines(d, txt, fp, CW - 180 - 160, 196, y, MUTED, 60, 3) + 30
+        _slide_footer(d, footer_text, i + 2, total)
+        pages.append(img)
+    # end slide
+    img = _bg(CW, CH)
+    d = ImageDraw.Draw(img)
+    y = 420
+    y = _lines(d, spec.get("end_title", "What would you add?"), font("bold", 72), CW - 180, 90, y, WHITE, 88, 4) + 30
+    if spec.get("end_body"):
+        y = _lines(d, spec["end_body"], font("medium", 40), CW - 180, 90, y, SOFT, 54, 4) + 40
+    d.text((90 * SCALE, y * SCALE), "Follow Merchly for more COD tips", font=font("bold", 36), fill=YELLOW)
+    _slide_footer(d, footer_text, total, total)
+    pages.append(img)
+    rgb = [p.resize((CW, CH), Image.LANCZOS).convert("RGB") for p in pages]
+    rgb[0].save(out_path, save_all=True, append_images=rgb[1:], resolution=150)
+    rgb[0].save(out_path[:-4] + ".cover.png", optimize=True)
+
+
 def main(spec_path, out_path):
     spec = json.load(open(spec_path, encoding="utf-8"))
+    if spec["type"] == "carousel":
+        if not out_path.endswith(".pdf"):
+            raise SystemExit("carousel output must end in .pdf")
+        render_carousel(spec, out_path)
+        return
     img = background()
     d = ImageDraw.Draw(img)
     t = spec["type"]
