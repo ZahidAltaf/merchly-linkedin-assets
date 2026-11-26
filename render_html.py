@@ -300,16 +300,18 @@ def carousel_pages(spec, t):
     pages = []
     prog = lambda i: f'<div class="prog"><i style="width:{100*i/total:.1f}%"></i></div>'
     base = f""".prog{{position:absolute;left:0;right:0;top:0;height:8px;background:{t['line']};z-index:3}}
-.prog i{{display:block;height:100%;background:linear-gradient(90deg,{t['accent']},#EC4899)}}"""
+.prog i{{display:block;height:100%;background:linear-gradient(90deg,{t['accent']},#EC4899)}}
+.cv{{background:{t['card']};border:1px solid {t['line']};border-radius:32px;padding:60px 56px;box-shadow:0 30px 70px -34px rgba(20,17,43,.38);display:flex;flex-direction:column}}"""
     # cover
     k = f'<div class="kick">{rich(spec["kicker"])}</div>' if spec.get("kicker") else ""
     sub = f'<div class="subtitle">{rich(spec["subtitle"])}</div>' if spec.get("subtitle") else ""
     cover_css = base + f""".kick{{align-self:flex-start;display:inline-block;background:#FACC15;color:#0F0B24;font-weight:800;font-size:22px;letter-spacing:.16em;padding:12px 22px;border-radius:999px;margin-bottom:36px}}
-.ct{{font-family:'Inter Display';font-weight:900;font-size:96px;line-height:1;letter-spacing:-.045em}}
+.cv .subtitle{{color:{t['ink']};opacity:.85;font-size:32px;max-width:none}}
+.ct{{font-family:'Inter Display';font-weight:900;font-size:88px;line-height:1.02;letter-spacing:-.045em}}
 .sw{{display:flex;align-items:center;gap:18px;margin-top:56px;font-weight:800;font-size:28px;color:{t['accent']};letter-spacing:.06em}}
 .sw i{{display:block;width:90px;height:4px;background:{t['accent']};position:relative}}
 .sw i:after{{content:'';position:absolute;right:-2px;top:-8px;border-left:16px solid {t['accent']};border-top:10px solid transparent;border-bottom:10px solid transparent}}"""
-    inner = prog(1) + f'<div class="body">{k}<div class="ct">{rich(spec["title"])}</div>{sub}<div class="sw">SWIPE <i></i></div></div>'
+    inner = prog(1) + f'<div class="body"><div class="cv">{k}<div class="ct">{rich(spec["title"])}</div>{sub}<div class="sw">SWIPE <i></i></div></div></div>'
     pages.append(frame(t, inner, {**spec, "source": ""}, cover_css, page=f"1 / {total}"))
     # slides
     for i, s in enumerate(slides):
@@ -317,28 +319,37 @@ def carousel_pages(spec, t):
         pts = "".join(f'<li>{icon("check",26,t["accent"],3)}<span>{rich(p)}</span></li>' for p in s.get("points", [])[:4])
         pts = f'<ul class="sp">{pts}</ul>' if pts else ""
         met = f'<div class="met">{icon("target",32,"#fff")}<span><b>Measure:</b> {rich(s["metric"])}</span></div>' if s.get("metric") else ""
-        css = base + f""".num{{font-family:'Inter Display';font-weight:900;font-size:150px;line-height:.8;letter-spacing:-.06em;color:{t['accent']};opacity:.18}}
-.sh{{display:flex;align-items:center;gap:24px;margin-top:18px}}
-.sh h2{{font-family:'Inter Display';font-weight:800;font-size:68px;line-height:1.04;letter-spacing:-.035em;color:{t['ink']}}}
-.sc{{margin-top:36px;padding:40px 44px;background:{t['card']};border:1px solid {t['line']};border-radius:28px;box-shadow:0 24px 60px -30px rgba(20,17,43,.35)}}
-.sb{{font-size:38px;line-height:1.42;color:{t['ink']};font-weight:500}}
+        css = base + f""".slide{{background:{t['card']};border:1px solid {t['line']};border-radius:32px;padding:52px 52px 48px;box-shadow:0 30px 70px -34px rgba(20,17,43,.38)}}
+.shd{{display:flex;align-items:center;justify-content:space-between;margin-bottom:30px}}
+.stp{{font-weight:800;font-size:22px;letter-spacing:.18em;color:{t['accent']}}}
+.num{{font-family:'Inter Display';font-weight:900;font-size:64px;line-height:1;letter-spacing:-.04em;color:{t['line']}}}
+.sh{{display:flex;align-items:center;gap:24px}}
+.sh h2{{font-family:'Inter Display';font-weight:800;font-size:62px;line-height:1.05;letter-spacing:-.035em;color:{t['ink']}}}
+.div{{height:1px;background:{t['line']};margin:34px 0 26px}}
+.sb{{font-size:37px;line-height:1.42;color:{t['ink']};font-weight:500}}
 .sp{{list-style:none}}
-.sb + .sp{{margin-top:22px}}
-.sp li{{display:flex;gap:18px;align-items:flex-start;font-size:36px;line-height:1.35;font-weight:600;color:{t['ink']};padding:14px 0}}
+.sb + .sp{{margin-top:18px}}
+.sp li{{display:flex;gap:18px;align-items:flex-start;font-size:35px;line-height:1.35;font-weight:600;color:{t['ink']};padding:14px 0;border-bottom:1px solid {t['line']}}}
+.sp li:last-child{{border-bottom:0}}
 .sp li svg{{flex:none;margin-top:6px}}
-.met{{display:flex;gap:16px;align-items:center;margin-top:28px;padding:24px 28px;border-radius:20px;background:{t['accent']};color:#fff;font-size:29px;line-height:1.35;font-weight:600}}
+.met{{display:flex;gap:16px;align-items:center;margin-top:24px;padding:26px 30px;border-radius:22px;background:{t['accent']};color:#fff;font-size:29px;line-height:1.35;font-weight:600}}
 .met b{{font-weight:800}}
 .met svg{{flex:none}}"""
-        ic = f'<div class="ico" style="width:84px;height:84px;background:{t["bg2"]};color:{t["accent"]}">{icon(s.get("icon","check"),42)}</div>'
-        card_html = f'<div class="sc">{body}{pts}</div>' if (body or pts) else ""
-        inner = prog(i + 2) + f'<div class="body"><div class="num">{i+1:02d}</div><div class="sh">{ic}<h2>{rich(s["head"])}</h2></div>{card_html}{met}</div>'
+        body = f'<p class="sb">{rich(s["body"])}</p>' if s.get("body") else ""
+        pts = "".join(f'<li>{icon("check",28,t["accent"],3)}<span>{rich(p)}</span></li>' for p in s.get("points", [])[:4])
+        pts = f'<ul class="sp">{pts}</ul>' if pts else ""
+        met = f'<div class="met">{icon("target",32,"#fff")}<span><b>Measure:</b> {rich(s["metric"])}</span></div>' if s.get("metric") else ""
+        ic = f'<div class="ico" style="width:88px;height:88px;background:{t["bg2"]};color:{t["accent"]}">{icon(s.get("icon","check"),44)}</div>'
+        divider = '<div class="div"></div>' if (body or pts) else ""
+        inner = prog(i + 2) + (f'<div class="body"><div class="slide"><div class="shd"><span class="stp">STEP {i+1} OF {len(slides)}</span><span class="num">{i+1:02d}</span></div>'
+                               f'<div class="sh">{ic}<h2>{rich(s["head"])}</h2></div>{divider}{body}{pts}</div>{met}</div>')
         pages.append(frame(t, inner, {**spec, "source": s.get("source", "")}, css, page=f"{i+2} / {total}"))
     # end
     end_css = base + f""".et{{font-family:'Inter Display';font-weight:900;font-size:84px;line-height:1.02;letter-spacing:-.045em}}
 .eb{{font-size:38px;line-height:1.42;color:{t['ink']};margin-top:30px;font-weight:500}}
-.fl{{display:inline-flex;align-items:center;gap:16px;margin-top:56px;background:linear-gradient(135deg,{t['accent']},{t['accent2']});color:#fff;font-weight:800;font-size:30px;padding:24px 34px;border-radius:999px}}"""
+.cv .fl{{align-self:flex-start}} .fl{{display:inline-flex;align-items:center;gap:16px;margin-top:56px;background:linear-gradient(135deg,{t['accent']},{t['accent2']});color:#fff;font-weight:800;font-size:30px;padding:24px 34px;border-radius:999px}}"""
     eb = f'<div class="eb">{rich(spec["end_body"])}</div>' if spec.get("end_body") else ""
-    inner = prog(total) + f'<div class="body"><div class="et">{rich(spec.get("end_title","What would you add?"))}</div>{eb}<div><div class="fl">{icon("users",32,"#fff")} Follow Merchly for more COD playbooks</div></div></div>'
+    inner = prog(total) + f'<div class="body"><div class="cv"><div class="et">{rich(spec.get("end_title","What would you add?"))}</div>{eb}<div><div class="fl">{icon("users",32,"#fff")} Follow Merchly for more COD playbooks</div></div></div></div>'
     pages.append(frame(t, inner, {**spec, "source": ""}, end_css, page=f"{total} / {total}"))
     return pages
 
