@@ -73,11 +73,11 @@ def rich(text):
 
 
 THEMES = {
-    "light": dict(bg="#F6F4EF", bg2="#EDE9FE", ink="#14112B", sub="#55516E", card="#FFFFFF",
+    "light": dict(bg="#F6F4EF", bg2="#EDE9FE", ink="#14112B", sub="#3D3954", card="#FFFFFF",
                   line="#E4E0D8", accent="#5B3DF5", accent2="#7C3AED", hl="#FDE68A", hlink="#14112B",
                   good="#15803D", goodbg="#DCFCE7", bad="#B91C1C", badbg="#FEE2E2", chip="#14112B", chipink="#FFFFFF",
                   glow="rgba(91,61,245,.10)"),
-    "dark": dict(bg="#0F0B24", bg2="#1C1442", ink="#FFFFFF", sub="#B9B3D9", card="#1A1438",
+    "dark": dict(bg="#0F0B24", bg2="#1C1442", ink="#FFFFFF", sub="#D4CFEE", card="#1A1438",
                  line="#2E2659", accent="#8B7BFF", accent2="#A78BFA", hl="#FACC15", hlink="#0F0B24",
                  good="#4ADE80", goodbg="rgba(74,222,128,.12)", bad="#F87171", badbg="rgba(248,113,113,.12)",
                  chip="#FACC15", chipink="#0F0B24", glow="rgba(139,123,255,.25)"),
@@ -316,22 +316,26 @@ def carousel_pages(spec, t):
         body = f'<p class="sb">{rich(s["body"])}</p>' if s.get("body") else ""
         pts = "".join(f'<li>{icon("check",26,t["accent"],3)}<span>{rich(p)}</span></li>' for p in s.get("points", [])[:4])
         pts = f'<ul class="sp">{pts}</ul>' if pts else ""
-        met = f'<div class="met">{icon("target",30,t["accent"])}<span><b>Measure:</b> {rich(s["metric"])}</span></div>' if s.get("metric") else ""
-        css = base + f""".num{{font-family:'Inter Display';font-weight:900;font-size:200px;line-height:.8;letter-spacing:-.06em;color:transparent;-webkit-text-stroke:3px {t['accent']};opacity:.9}}
-.sh{{display:flex;align-items:center;gap:22px;margin-top:34px}}
-.sh h2{{font-family:'Inter Display';font-weight:800;font-size:66px;line-height:1.04;letter-spacing:-.035em}}
-.sb{{font-size:34px;line-height:1.42;color:{t['sub']};margin-top:30px}}
-.sp{{list-style:none;margin-top:30px}}
-.sp li{{display:flex;gap:16px;align-items:flex-start;font-size:32px;line-height:1.35;font-weight:600;padding:14px 0}}
+        met = f'<div class="met">{icon("target",32,"#fff")}<span><b>Measure:</b> {rich(s["metric"])}</span></div>' if s.get("metric") else ""
+        css = base + f""".num{{font-family:'Inter Display';font-weight:900;font-size:150px;line-height:.8;letter-spacing:-.06em;color:{t['accent']};opacity:.18}}
+.sh{{display:flex;align-items:center;gap:24px;margin-top:18px}}
+.sh h2{{font-family:'Inter Display';font-weight:800;font-size:68px;line-height:1.04;letter-spacing:-.035em;color:{t['ink']}}}
+.sc{{margin-top:36px;padding:40px 44px;background:{t['card']};border:1px solid {t['line']};border-radius:28px;box-shadow:0 24px 60px -30px rgba(20,17,43,.35)}}
+.sb{{font-size:38px;line-height:1.42;color:{t['ink']};font-weight:500}}
+.sp{{list-style:none}}
+.sb + .sp{{margin-top:22px}}
+.sp li{{display:flex;gap:18px;align-items:flex-start;font-size:36px;line-height:1.35;font-weight:600;color:{t['ink']};padding:14px 0}}
 .sp li svg{{flex:none;margin-top:6px}}
-.met{{display:flex;gap:16px;align-items:flex-start;margin-top:36px;padding:26px 28px;border-radius:20px;background:{t['bg2']};font-size:27px;line-height:1.4}}
-.met svg{{flex:none;margin-top:2px}}"""
+.met{{display:flex;gap:16px;align-items:center;margin-top:28px;padding:24px 28px;border-radius:20px;background:{t['accent']};color:#fff;font-size:29px;line-height:1.35;font-weight:600}}
+.met b{{font-weight:800}}
+.met svg{{flex:none}}"""
         ic = f'<div class="ico" style="width:84px;height:84px;background:{t["bg2"]};color:{t["accent"]}">{icon(s.get("icon","check"),42)}</div>'
-        inner = prog(i + 2) + f'<div class="body"><div class="num">{i+1:02d}</div><div class="sh">{ic}<h2>{rich(s["head"])}</h2></div>{body}{pts}{met}</div>'
+        card_html = f'<div class="sc">{body}{pts}</div>' if (body or pts) else ""
+        inner = prog(i + 2) + f'<div class="body"><div class="num">{i+1:02d}</div><div class="sh">{ic}<h2>{rich(s["head"])}</h2></div>{card_html}{met}</div>'
         pages.append(frame(t, inner, {**spec, "source": s.get("source", "")}, css, page=f"{i+2} / {total}"))
     # end
     end_css = base + f""".et{{font-family:'Inter Display';font-weight:900;font-size:84px;line-height:1.02;letter-spacing:-.045em}}
-.eb{{font-size:34px;line-height:1.42;color:{t['sub']};margin-top:30px}}
+.eb{{font-size:38px;line-height:1.42;color:{t['ink']};margin-top:30px;font-weight:500}}
 .fl{{display:inline-flex;align-items:center;gap:16px;margin-top:56px;background:linear-gradient(135deg,{t['accent']},{t['accent2']});color:#fff;font-weight:800;font-size:30px;padding:24px 34px;border-radius:999px}}"""
     eb = f'<div class="eb">{rich(spec["end_body"])}</div>' if spec.get("end_body") else ""
     inner = prog(total) + f'<div class="body"><div class="et">{rich(spec.get("end_title","What would you add?"))}</div>{eb}<div><div class="fl">{icon("users",32,"#fff")} Follow Merchly for more COD playbooks</div></div></div>'
